@@ -6,7 +6,6 @@ from tkinter import ttk, filedialog, messagebox
 from PIL import Image, ImageTk
 import threading
 
-# --- Deep Learning Imports ---
 import tensorflow as tf
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
@@ -15,8 +14,8 @@ from sklearn.model_selection import train_test_split
 DATASET_PATH = "Project_Dataset"
 FRESH_PATH = os.path.join(DATASET_PATH, "FreshFruits")
 ROTTEN_PATH = os.path.join(DATASET_PATH, "RottenFruits")
-MODEL_PATH = "fruit_cnn_classifier.keras" # Updated to Keras format
-IMG_SIZE = 128 # CNN Input size (128x128 RGB)
+MODEL_PATH = "fruit_cnn_classifier.keras"
+IMG_SIZE = 128
 
 def cv_to_tk(cv_img, resize_dim=(350, 350)):
     """Converts an OpenCV BGR image to a Tkinter-compatible PhotoImage."""
@@ -32,7 +31,6 @@ class FruitCNNClassifierGUI:
         master.title("Deep Learning Fruit Classifier (CNN)")
         master.geometry("800x850") 
 
-        # --- Training Frame ---
         self.train_frame = LabelFrame(master, text="CNN Training Control", padx=10, pady=10)
         self.train_frame.pack(fill="x", padx=10, pady=5)
 
@@ -45,7 +43,6 @@ class FruitCNNClassifierGUI:
         self.train_button = Button(self.train_frame, text="Start CNN Training", command=self.start_training, bg="#e1e1e1")
         self.train_button.pack(pady=5)
 
-        # --- Testing Frame ---
         self.test_frame = LabelFrame(master, text="Batch Testing & Inference", padx=10, pady=10)
         self.test_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
@@ -67,7 +64,6 @@ class FruitCNNClassifierGUI:
         self.result_label = Label(self.test_frame, text="Model not ready.", font=("Helvetica", 14, "bold"))
         self.result_label.pack(pady=(10, 10))
 
-        # Single large image display since CNN doesn't need manual masks
         self.image_container = Frame(self.test_frame)
         self.image_container.pack(fill="both", expand=True)
         self.lbl_image = Label(self.image_container, bg="black")
@@ -114,8 +110,8 @@ class FruitCNNClassifierGUI:
             MaxPooling2D(2, 2),
             Flatten(),
             Dense(128, activation='relu'),
-            Dropout(0.5), # Helps prevent overfitting
-            Dense(1, activation='sigmoid') # Binary output (0=Fresh, 1=Rotten)
+            Dropout(0.5),
+            Dense(1, activation='sigmoid')
         ])
         model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
         return model
@@ -135,7 +131,6 @@ class FruitCNNClassifierGUI:
 
             self.log(f"Loading {len(fresh_files)} Fresh, {len(rotten_files)} Rotten images into memory...")
 
-            # Load Fresh Images (Class 0)
             for i, f in enumerate(fresh_files):
                 img = cv2.imread(os.path.join(FRESH_PATH, f))
                 if img is not None:
@@ -144,7 +139,6 @@ class FruitCNNClassifierGUI:
                     y.append(0)
                 self.progress['value'] = i + 1
 
-            # Load Rotten Images (Class 1)
             for i, f in enumerate(rotten_files):
                 img = cv2.imread(os.path.join(ROTTEN_PATH, f))
                 if img is not None:
@@ -154,7 +148,7 @@ class FruitCNNClassifierGUI:
                 self.progress['value'] = len(fresh_files) + i + 1
 
             self.log("Normalizing image data...")
-            X = np.array(X, dtype="float32") / 255.0  # Scale pixels to 0-1
+            X = np.array(X, dtype="float32") / 255.0
             y = np.array(y)
 
             self.log("Splitting dataset into Training and Validation sets...")
@@ -164,13 +158,12 @@ class FruitCNNClassifierGUI:
             self.model = self.build_cnn()
 
             self.log("Training CNN... (Check console for epoch progress)")
-            # Train the model. We use batch_size=32 and 10 epochs (adjust as needed)
             history = self.model.fit(
                 X_train, y_train, 
                 validation_data=(X_test, y_test), 
                 epochs=10, 
                 batch_size=32,
-                verbose=1 # Prints to standard console
+                verbose=1
             )
             
             val_acc = history.history['val_accuracy'][-1]
@@ -228,35 +221,26 @@ class FruitCNNClassifierGUI:
                 img = cv2.imread(path)
                 if img is None: continue
 
-                # Prepare image for display
                 tk_img = cv_to_tk(img, (400, 400))
 
-                # Prepare image for CNN
                 img_resized = cv2.resize(img, (IMG_SIZE, IMG_SIZE))
                 img_normalized = img_resized.astype("float32") / 255.0
-                img_batch = np.expand_dims(img_normalized, axis=0) # Add batch dimension
+                img_batch = np.expand_dims(img_normalized, axis=0)
 
-                # Predict
                 pred_prob = self.model.predict(img_batch, verbose=0)[0][0]
                 
-                # Interpret threshold (0 = Fresh, 1 = Rotten)
                 pred_idx = 1 if pred_prob > 0.5 else 0
                 pred_label = self.classes[pred_idx]
                 
-                # Confidence score
                 prob = pred_prob if pred_idx == 1 else (1 - pred_prob)
 
-                # --- NEW GROUND TRUTH LOGIC ---
-                # Get the name of the folder containing the uploaded image
                 parent_folder = os.path.basename(os.path.dirname(path)).lower()
                 
-                # Determine Ground Truth based on the folder name
                 if 'fresh' in parent_folder:
                     gt = "Fresh"
                 elif 'rotten' in parent_folder:
                     gt = "Rotten"
                 else:
-                    # Fallback to the old filename method just in case
                     fname = os.path.basename(path).lower()
                     gt = "Fresh" if fname.startswith('f') else ("Rotten" if fname.startswith('r') else "Unknown")
 
