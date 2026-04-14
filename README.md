@@ -1,10 +1,10 @@
-# 🍎 Deep Learning Fruit Classifier (CNN)
+# Deep Learning Fruit Classifier (CNN)
 
 A desktop application that uses a Convolutional Neural Network (CNN) to classify fruit images as **Fresh** or **Rotten**. Built with Python, TensorFlow/Keras, and Tkinter.
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Overview](#overview)
 - [Features](#features)
